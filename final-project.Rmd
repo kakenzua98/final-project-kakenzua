@@ -1,0 +1,93 @@
+---
+title: "final_project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, error = FALSE)
+library(tidyverse)
+library(stringr)
+library(fs)
+library(scales)
+library(lubridate)
+library(dplyr)
+library(knitr)
+library(tibble)
+library(foreign)
+library(kableExtra)
+library(formattable)
+library(readxl)
+library(readr)
+library(janitor)
+library(tibble)
+library(purrr)
+library(ggplot2)
+
+refugee_dest <- read_csv("data/refugees-destination.csv")
+
+hate_crimes <- read_csv("data/hate_crimes copy.csv")
+write_rds(hate_crimes, "final_project_app/hate_crimes.rds")
+
+census_2014 <- read_csv("data/census-state.csv")
+write_rds(census_2014, "final_project_app/census_2014.rds")
+
+unemployment <- read_excel("data/unemployment_state_not_clean.xlsx", skip = 6) %>% 
+  clean_names %>% 
+  select(state, rate, rank, rate_1, rank_1, rate_2, rank_2, rate_3, rank_3, rate_4, rank_4, rate_5, rank_5) %>% 
+  rename(rate_2017 = rate, 
+         rank_2017 = rank, 
+         rate_2016 = rate_1,
+         rank_2016 = rank_1,
+         rate_2015 = rate_2,
+         rank_2015 = rank_2,
+         rate_2014 = rate_3,
+         rank_2014 = rank_3,
+         rate_2013 = rate_4,
+         rank_2013 = rank_4,
+         rate_2012 = rate_5,
+         rank_2012 = rank_5) %>% 
+  filter(state != "United States") %>% 
+  select(state, rate_2015, rate_2014, rate_2013)
+  
+write_rds(unemployment, "final_project_app/unemployment.rds")
+
+lpr_dest <- read_csv("data/lpr_state.csv") %>% 
+  clean_names() %>% 
+  rename(state = state_or_territory_of_residence,
+         `2013` = x2013,
+         `2014` = x2014,
+         `2015` = x2015) %>% 
+  mutate(avg = (`2013`+`2014`+`2015`)/3) %>% 
+  select(state, avg)
+
+
+demo_all <- lpr_dest %>% 
+  left_join(hate_crimes, by = "state") %>% 
+  left_join(unemployment, by = "state") %>% 
+  left_join(census_2014, by = "state") %>% 
+  filter(!is.na(rate_2015))
+
+write_rds(demo_all, "final_project_app/demo_all.rds")
+  
+  
+
+
+lpr_2012 <- read_excel("data/lpr_2004_2013.xls", skip = 2) %>% 
+  clean_names()
+
+write_rds(lpr_dest, "final_project_app//lpr_dest.rds")
+```
+
+Organize Refugee Data
+```{r}
+refugee_org <- refugee_dest %>%
+  select(year, dest_state, dest_city, arrivals) %>%
+  filter(dest_state == "Alabama") %>% 
+  ggplot(aes(x=year, y=arrivals)) + geom_jitter() 
+  #filter(dest_state %in% c("California","Texas","New York","Florida","Pennsylvania"))
+  #group_by(dest_state, year) %>%
+  #spread(key = year, value = dest_state)
+
+refugee_org
+```
+
